@@ -6,9 +6,13 @@ var poolKeys;
 $(function(){
   var dataTable = $("#walletTable").DataTable({
       "order": [[ 0, "desc" ]],
-      "pageLength": 5,
+      "pageLength": 10,
       "bLengthChange": false,
-      "iDisplayLength": 5
+      "iDisplayLength": 10,
+      "height": 200,
+    	"pageLength": 10,
+    	"pagingType": "full_numbers",
+    	"lengthMenu": [ 25, 50, 100, 150, 300, 500 ]
   });
   var cachedWallets = Cookies.get('wallets');
   if(cachedWallets && cachedWallets.length > 0){
@@ -18,8 +22,8 @@ $(function(){
       var coin = wallet[0];
       var address = wallet[1];
       dataTable.row.add([
-        "<a href=\"/workers/" + address + "\"><img src=\"./static/icons/" + coin + ".png\" height=\"24px\"/> " + address + "</a>",
-        "<button id=\"" + address + "\" type=\"button\" class=\"btn btn-danger\" style=\"padding-top: 0; height: 23px;\"><i class=\"fa fa-trash-o\"></i> Delete&nbsp;</button></td>"
+        "<a href=\"/workers/" + address + "\"><img src=\"./static/icons/" + coin + ".png\" height=\"25px\"/> " + address + "</a>",
+        "<button id=\"" + address + "\" type=\"button\" class=\"btn btn-danger\" style=\"padding-top: 0; height: 18px;\"><i class=\"fa fa-trash-o\"></i> Delete&nbsp;</button></td>"
       ]).draw(false);
       $('#' + address).click(function(event) {
         if(confirm("Are you sure you want to delete address: " + address)){

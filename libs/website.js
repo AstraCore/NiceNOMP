@@ -1,9 +1,13 @@
-var fs = require('fs');
+const fs = require('fs');
 var path = require('path');
 
+//require('tls');
+const http = require('http');
+const https = require('https');
+
 var async = require('async');
-var watch = require('node-watch');
 var redis = require('redis');
+var watch = require('node-watch');
 
 var dot = require('dot');
 var express = require('express');
@@ -14,8 +18,15 @@ var Stratum = require('stratum-pool');
 var util = require('stratum-pool/lib/util.js');
 
 var api = require('./api.js');
+
 const loggerFactory = require('./logger.js');
 const logger = loggerFactory.getLogger('Website', 'system');
+
+
+/* LeshaCat code to add LZ/Matomo support :D */
+if (fs.existsSync('lzCode.conf')) { var lzCode = fs.readFileSync('lzCode.conf','utf8'); } else { var lzCode = ""; }
+if (fs.existsSync('matomoCode.conf')) { var matomoCode = fs.readFileSync('matomoCode.conf','utf8'); } else { var matomoCode = ""; }
+
 
 module.exports = function () {
     logger.info("Starting Website module");
@@ -32,20 +43,36 @@ module.exports = function () {
 
     var logSystem = 'Website';
 
-    var pageFiles = {
-        'index.html': 'index',
-        'home.html': '',
-    	  'pools.html': 'pools',
-        'getting_started.html': 'getting_started',
-        'stats.html': 'stats',
-        'dashboard.html': 'dashboard',
-        'api.html': 'api',
-        'learn_more.html': 'learn_more',
-        'miner_stats.html': 'miner_stats',
-        'pool_stats.html': 'pool_stats',
-        'blocks.html': 'blocks'
-    };
+    
 
+    var pageFiles = {
+        'home.html': '',                                // home page
+        'index.html': 'index',                          // index page
+        'getting_started.html': 'getting_started',      // getting started page
+        'dashboard.html': 'dashboard',                  // dashboard page
+    	'pools.html': 'pools',                          // all pool stats page
+        'stats.html': 'stats',                           // individual pool stats pages
+        'workers.html': 'workers',                      // individual & all worker stats pages
+        'blocks.html': 'blocks',                        // payment history
+        'learn_more.html': 'learn_more',                // help
+        'api.html': 'api',                              // api
+        'miner_stats.html': 'miner_stats',              // individual miner stats (skeleton?)
+        'pool_stats.html': 'pool_stats'                 // individual pool stats (skeleton?)
+    };
+    
+    // LeshaCat code to decide wether to load example page or real news page.    
+    var mainScriptPath = require('path').dirname(require.main.filename)    
+    if ((fs.existsSync(mainScriptPath + '/website/pages/news.html'))) {
+        // Do something
+        pageFiles['news.html'] = "news";                // news page
+        logger.debug("Loaded CUSTOM news.html"); 
+    }
+    else {
+        pageFiles['news_example.html'] = "news";        // news page
+        
+        logger.debug("Loaded EXAMPLE news_example.html");
+    }    
+    
     var pageTemplates = {};
 
     var pageProcessed = {};
@@ -62,18 +89,23 @@ module.exports = function () {
             pageProcessed[pageName] = pageTemplates[pageName]({
                 poolsConfigs: poolConfigs,
                 stats: portalStats.stats,
-                portalConfig: portalConfig
+                portalConfig: portalConfig,
+                matomoCode: matomoCode,             ///* LeshaCat code to add LZ/Matomo support :D */
+                livezillaCode: lzCode               ///* LeshaCat code to add LZ/Matomo support :D */
             });
             indexesProcessed[pageName] = pageTemplates.index({
                 page: pageProcessed[pageName],
                 selected: pageName,
                 stats: portalStats.stats,
                 poolConfigs: poolConfigs,
-                portalConfig: portalConfig
+                portalConfig: portalConfig,
+                matomoCode: matomoCode,             ///* LeshaCat code to add LZ/Matomo support :D */
+                livezillaCode: lzCode               ///* LeshaCat code to add LZ/Matomo support :D */
             });
         }
 
-        //logger.debug(logSystem, 'Stats', 'Website updated to latest stats');
+//        logger.debug('WEBSITE> Updated to latest stats');
+        
     };
 
 
@@ -87,7 +119,7 @@ module.exports = function () {
             });
         }, function(err){
             if (err){
-                console.log('error reading files for creating dot templates: '+ JSON.stringify(err));
+                console.log('WEBSITE> error reading files for creating dot templates: '+ JSON.stringify(err));
                 return;
             }
             processTemplates();
@@ -104,7 +136,7 @@ module.exports = function () {
 
         if (basename in pageFiles){
             readPageFiles([basename]);
-            logger.debug('Reloaded file %s', basename);
+            logger.debug('WEBSITE> Reloaded file %s', basename);
         }
     });
 
@@ -166,7 +198,7 @@ module.exports = function () {
                     var daemon = new Stratum.daemon.interface([coinInfo.daemon], logger);
                     daemon.cmd('dumpprivkey', [coinInfo.address], function (result) {
                         if (result[0].error) {
-                            logger.error('Could not dumpprivkey for %s , err = %s', c, JSON.stringify(result[0].error));
+                            logger.error('WEBSITE> Could not dumpprivkey for %s , err = %s', c, JSON.stringify(result[0].error));
                             cback();
                             return;
                         }
@@ -186,7 +218,7 @@ module.exports = function () {
                 if (Object.keys(coinsForRedis).length > 0) {
                     client.hmset('coinVersionBytes', coinsForRedis, function (err) {
                         if (err) {
-                            logger.error('Failed inserting coin byte version into redis, err = %s', JSON.stringify(err));
+                            logger.error('WEBSITE> Failed inserting coin byte version into redis, err = %s', JSON.stringify(err));
                         }
                         client.quit();
                     });
@@ -198,7 +230,7 @@ module.exports = function () {
             }
         ], function (err, coinBytes) {
             if (err) {
-                logger.error('Error, err = %s', err);
+                logger.error('WEBSITE> Error, err = %s', err);
                 return;
             }
             try {
@@ -206,7 +238,7 @@ module.exports = function () {
                 keyScriptProcessed = keyScriptTemplate({coins: coinBytes});
             }
             catch (e) {
-                logger.error('Failed to read key.html file');
+                logger.error('WEBSITE> Failed to read key.html file');
             }
         });
 
@@ -308,14 +340,45 @@ module.exports = function () {
     });
 
     try {
-        app.listen(portalConfig.website.port, portalConfig.website.host, function () {
-            logger.info('Website started on %s:%s', portalConfig.website.host,portalConfig.website.port);
+    	
+    	/* HTTP WEBSITE */
+    	logger.info('WEBSITE> Attempting to start Website on %s:%s', portalConfig.website.host,portalConfig.website.port);
+    	        
+        http.createServer(app).listen(portalConfig.website.port, portalConfig.website.host, function () {
+            logger.info('WEBSITE> Website started on %s:%s', portalConfig.website.host,portalConfig.website.port);
         });
+        
     }
     catch (e) {
-        logger.error('e = %s', JSON.stringify(e));
-        logger.error('Could not start website on %s:%s - its either in use or you do not have permission', portalConfig.website.host,portalConfig.website.port);
+        logger.error('WEBSITE> e = %s', JSON.stringify(e));
+        logger.error('WEBSITE> Could not start website on %s:%s - its either in use or you do not have permission', portalConfig.website.host,portalConfig.website.port);
     }
+    
+    
+    /* HTTPS WEBSITE */ 
+    if (portalConfig.website.sslenabled) {
+    	
+    	try {
+    		
+			logger.info('WEBSITE> Attempting to start SSL Website on %s:%s', portalConfig.website.host,portalConfig.website.sslport);	
+			       
+			var privateKey = fs.readFileSync( portalConfig.website.sslkey );
+			var certificate = fs.readFileSync( portalConfig.website.sslcert );
+			
+			var credentials = {key: privateKey, cert: certificate};			
+			
+			https.createServer(credentials, app).listen(portalConfig.website.sslport, portalConfig.website.host, function () {
+	            logger.info('WEBSITE> SSL Website started on %s:%s', portalConfig.website.host,portalConfig.website.sslport);
+	        });
+        	
+        }
+        catch (e) {        	
+	        logger.error('WEBSITE> e = %s', JSON.stringify(e));
+	        logger.error('WEBSITE> Could not start SSL website on %s:%s - its either in use or you do not have permission', portalConfig.website.host,portalConfig.website.sslport);
+        }
+        	
+        	
+	}
 
 
 };

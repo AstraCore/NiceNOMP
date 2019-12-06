@@ -2,10 +2,13 @@ var Stratum = require('stratum-pool');
 var redis = require('redis');
 var net = require('net');
 
+const functions = require('./functions.js');
+
 var MposCompatibility = require('./mposCompatibility.js');
 var ShareProcessor = require('./shareProcessor.js');
 
 const loggerFactory = require('./logger.js');
+
 
 module.exports = function() {
   const logger = loggerFactory.getLogger('PoolWorker', 'system');
@@ -198,7 +201,12 @@ module.exports = function() {
 
         var authString = authorized ? 'Authorized' : 'Unauthorized ';
 
-        logger.debug('%s %s:%s [%s]', authString, workerName, password, ip);
+        
+        // PASSWORD "c=pexa,m=solo" etc MOUSE422
+        logger.debug('AUTH>TRUE> authstr [%s] worker [%s] passwd [%s] ip [%s]', authString, workerName, password, functions.anonymizeIP(ip));
+        
+                
+        
         callback({
           error: null,
           authorized: authorized,
@@ -207,35 +215,79 @@ module.exports = function() {
       });
     };
 
-
+    
+      
     var pool = Stratum.createPool(poolOptions, authorizeFN, logger);
     pool.on('share', function(isValidShare, isValidBlock, data) {
+        
+      let workerStr = data.worker;
+      let workerInfo = workerStr.split('.');
+      
       logger.silly('onStratumPoolShare');
       logger.debug("forkId %s", forkId);
+  
       var shareDataJsonStr = JSON.stringify(data);
 
       if (data.blockHash && !isValidBlock) {
-        logger.info('We thought a block was found but it was rejected by the daemon, share data: %s' + shareDataJsonStr);
-      } else if (isValidBlock) {
-        logger.info('Block found: %s', data.blockHash + ' by %s', data.worker);
+            if (workerInfo.length === 2) {
+                logger.info('BLOCK>REJECTED> Found block rejected by the daemon, share data: %s' + shareDataJsonStr);
+            }
+            else {
+                logger.info('BLOCK>REJECTED> Found block rejected by the daemon, share data: %s' + shareDataJsonStr);
+            }
+      } else if (isValidBlock) {          
+            if (workerInfo.length === 2) {
+                logger.info('BLOCK>ACCEPTED> %s by %s worker: %s', data.blockHash, workerInfo[0], workerInfo[1]);
+                logger.info('BLOCK>ACCEPTED>INFO> %s', JSON.stringify(data));
+            }
+            else {
+                logger.info('BLOCK>ACCEPTED> %s by %s worker: none', data.blockHash, workerStr);
+                logger.info('BLOCK>ACCEPTED>INFO> %s', JSON.stringify(data));
+            }
       }
-      if (isValidShare) {
-        if (data.shareDiff > 1000000000) {
-          logger.warn('Share was found with diff higher than 1.000.000.000!');
-        } else if (data.shareDiff > 1000000) {
-          logger.warn('Share was found with diff higher than 1.000.000!');
+      
+        if (workerInfo.length === 2) {
+            if (isValidShare) {
+                if (data.shareDiff > 1000000000) {
+                    logger.warn('SHARE>WARN> Share was found with diff higher than 1.000.000.000!');
+                } else if (data.shareDiff > 1000000) {
+                    logger.warn('SHARE>WARN> Share was found with diff higher than 1.000.000!');
+                }
+                logger.info('SHARE>ACCEPTED> job: %s req: %s res: %s by %s worker: %s [%s]', data.job, data.difficulty, data.shareDiff, workerInfo[0], workerInfo[1], functions.anonymizeIP(data.ip));                
+            } 
+            else if (!isValidShare) {
+                logger.info('SHARE>REJECTED> job: %s diff: %s by %s worker: %s reason: %s [%s]', data.job, data.difficulty, workerInfo[0], workerInfo[1], data.error, functions.anonymizeIP(data.ip));
+            }
         }
-        logger.info('Share accepted at diff %s/%s by %s [%s]', data.difficulty, data.shareDiff, data.worker, data.ip);
-
-      } else if (!isValidShare) {
-        logger.info('Share rejected: ' + shareDataJsonStr);
-      }
+        else {
+            if (isValidShare) {
+                if (data.shareDiff > 1000000000) {
+                    logger.warn('SHARE>WARN> Share was found with diff higher than 1.000.000.000!');
+                } else if (data.shareDiff > 1000000) {
+                    logger.warn('SHARE>WARN> Share was found with diff higher than 1.000.000!');
+                }
+                logger.info('SHARE>ACCEPTED> job: %s req: %s res: %s by %s worker: none [%s]', data.job, data.difficulty, data.shareDiff, workerStr, functions.anonymizeIP(data.ip));                
+            } 
+            else if (!isValidShare) {
+                logger.info('SHARE>REJECTED> job: %s diff: %s by %s worker: none reason: %s [%s]', data.job, data.difficulty, workerStr, data.error, functions.anonymizeIP(data.ip));
+            }
+        }
 
       handlers.share(isValidShare, isValidBlock, data)
 
 
     }).on('difficultyUpdate', function(workerName, diff) {
-      logger.info('Difficulty update to diff %s workerName = %s', JSON.stringify(workerName));
+        
+      let workerStr = workerName;
+      let workerInfo = workerStr.split('.');
+      
+      if (workerInfo.length === 2) {
+          logger.info('DIFFICULTY>UPDATE> diff: %s miner: %s worker: %s', diff, workerInfo[0], workerInfo[1]);
+      }
+      else {
+          logger.info('DIFFICULTY>UPDATE> diff: %s miner: %s worker: none', diff, workerStr);
+      }
+      
       handlers.diff(workerName, diff);
     }).on('log', function(severity, text) {
       logger.info(text);

@@ -168,6 +168,8 @@ $.getJSON('/api/pool_stats', function(data) {
   displayCharts();
 });
 
+
+
 statsSource.addEventListener('message', function(e) {
   var stats = JSON.parse(e.data);
   statData.push(stats);
@@ -211,6 +213,5 @@ statsSource.addEventListener('message', function(e) {
     }
     TriggerChartUpdates();
   }
-
 
 });

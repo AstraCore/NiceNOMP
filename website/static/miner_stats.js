@@ -36,6 +36,8 @@ function displayCharts() {
 	  max: 100,
 	  symbol: '%',
 	  pointer: true,
+      counter: true,
+      decimals: 2,
 	  pointerOptions: {
 	    toplength: -15,
 	    bottomlength: 10,
@@ -47,15 +49,22 @@ function displayCharts() {
 	  },
 	  title: "Shares This Round",
 	  gaugeWidthScale: 0.6,
-	  levelColors:["#e8e84c", "#6cdb5e"]
+	  levelColors:["#e8e84c", "#6cdb5e"],
+      levelColorsGradient: true
 	});
+
+	var tmpInt = Math.min((((10000 * stats.shares / (stats.shares + stats.invalidShares)) / 100)), 100);
+	var tmpInt2 = (100 - tmpInt) || 0;	
+	
 	invalidGage = new JustGage({
 	  id: "validShare",
-	  value: Math.min(stats.invalidShares, 100),
+	  value: tmpInt2,
 	  min: 0,
 	  max: 100,
 	  symbol: '%',
 	  pointer: true,
+      counter: true,
+      decimals: 2,
 	  pointerOptions: {
 	    toplength: -15,
 	    bottomlength: 10,
@@ -65,9 +74,10 @@ function displayCharts() {
 	    stroke_width: 3,
 	    stroke_linecap: 'round'
 	  },
-	  title: "Recent Invalid Shares",
+	  title: "Invalid Shares",
 	  gaugeWidthScale: 0.6,
-	  levelColors:["#e8e84c", "#f73d3d"]
+	  levelColors:["#f9a42c", "#f21f10"],
+      levelColorsGradient: true
 	});
 	workerGage= new JustGage({
 	  id: "workerDominance",
@@ -76,6 +86,8 @@ function displayCharts() {
 	  max: 100,
 		symbol: '%',
 	  pointer: true,
+      counter: true,
+      decimals: 2,
 	  pointerOptions: {
 	    toplength: -15,
 	    bottomlength: 10,
@@ -87,7 +99,8 @@ function displayCharts() {
 	  },
 	  title: "Worker Dominance",
 	  gaugeWidthScale: 0.6,
-	  levelColors:["#e8e84c", "#6cdb5e"]
+	  levelColors:["#e8e84c", "#6cdb5e"],
+      levelColorsGradient: true
 	});
 	var high = 0;
 	console.log(stats.hashrate);
@@ -99,7 +112,10 @@ function displayCharts() {
 	  symbol: '%',
 	  title: "Hashrate Dominance",
 	  levelColors:["#e8e84c", "#6cdb5e"],
+      levelColorsGradient: true,
 	  pointer: true,
+      counter: true,
+      decimals: 2,
 	  pointerOptions: {
 	    toplength: -15,
 	    bottomlength: 10,
@@ -150,18 +166,20 @@ function displayCharts() {
 }
 
 function updateStats() {
+    
 	var stats = getWorkerStats(_miner);
+	
 	totalHash = stats.hashrate;
-	totalPaid = stats.paid;
-	totalBal = stats.balance;
-	totalImmature = stats.immature;
 	totalShares = stats.totalShares;
+	
 	// update miner stats
 	$("#statsHashrate").text(getReadableHashRateString(totalHash));
 	$("#statsHashrateAvg").text(getReadableHashRateString(calculateAverageHashrate(null)));
-	$("#statsTotalImmature").text(totalImmature);
+	
+/*	$("#statsTotalImmature").text(totalImmature);
 	$("#statsTotalBal").text(totalBal);
-	$("#statsTotalPaid").text(totalPaid);
+	$("#statsTotalPaid").text(totalPaid);*/
+	
 }
 
 function updateWorkerStats() {
@@ -175,6 +193,11 @@ function updateWorkerStats() {
 		console.log(stats.miners[w]);
 		$("#statsHashrate" + htmlSafeWorkerName).text(getReadableHashRateString(stats.miners[w].hashrate[stats.miners[w].hashrate.length - 1] || 0));
 		$("#statsHashrateAvg" + htmlSafeWorkerName).text(getReadableHashRateString(calculateAverageHashrate(saneWorkerName)));
+		
+/*    	$("#statsTotalImmature").text(totalImmature);
+    	$("#statsTotalBal").text(totalBal);
+    	$("#statsTotalPaid").text(totalPaid);*/
+	
 	}
 }
 
@@ -182,10 +205,12 @@ function addWorkerToDisplay(name, htmlSafeName, workerObj) {
 	var htmlToAdd = "";
 	htmlToAdd = '<div class="boxStats" id="boxStatsLeft" style="float:left; margin: 9px; min-width: 260px;"><div class="boxStatsList">';
 	htmlToAdd += '<div class="boxLowerHeader">' + name.replace(/[^\w\s]/gi, '') + '</div><div>';
-	htmlToAdd += '<div><i class="fa fa-tachometer"></i> <span id="statsHashrate' + htmlSafeName + '">' + getReadableHashRateString(workerObj.hashrate[workerObj.hashrate.length - 1][1] || 0) + '</span> (Now)</div>';
-	htmlToAdd += '<div><i class="fa fa-tachometer"></i> <span id="statsHashrateAvg' + htmlSafeName + '">' + getReadableHashRateString(calculateAverageHashrate(name)) + '</span> (Avg)</div>';
+	htmlToAdd += '<div><i class="fas fa-tachometer-alt"></i> <span id="statsHashrate' + htmlSafeName + '">' + getReadableHashRateString(workerObj.hashrate[workerObj.hashrate.length - 1][1] || 0) + '</span> (Now)</div>';
+	htmlToAdd += '<div><i class="fas fa-tachometer-alt"></i> <span id="statsHashrateAvg' + htmlSafeName + '">' + getReadableHashRateString(calculateAverageHashrate(name)) + '</span> (Avg)</div>';
 	htmlToAdd += '</div></div></div>';
+	
 	$("#boxesWorkers").html($("#boxesWorkers").html() + htmlToAdd);
+	
 }
 
 function calculateAverageHashrate(worker) {
@@ -227,16 +252,39 @@ $.getJSON('/api/worker_stats?' + _miner, function(data) {
 	if (document.hidden) return;
 	$.getJSON('/api/pool_stats', function(statData) {
 		addWorkerToTracker(statData, data, _miner, function(){
+			
+            
+            //alert("MS> Locating worker stats for: " + _miner);			
+			
 			var stats = getWorkerStats(_miner);
+			
 			statData = data;
+			
 			for (var w in statData.workers) {
 				_workerCount++;
 			}
+			
 			displayCharts();
 			rebuildWorkerDisplay();
 			updateStats();
+			
+        	var totalPaid = statData.paid || 0;
+        	var totalBal = statData.balance || 0;
+        	var totalImmature = (statData.immature) || 0;
+        	
+        	//alert('immature: ' + totalImmature);
+        	
+        	var luckDays = statData.luckDays || "unknown";
+	
+        	var SYMB = stats.symbol || "unknown symbol";
 
-			$('#total-paid-label').append(stats.paid.toFixed(8) + ' ' + stats.symbol);
+			$('#total-paid-label').append(totalPaid.toFixed(8) + ' ' + SYMB);			
+			
+			$('#total-immature-label').append(totalImmature.toFixed(8) + ' ' + SYMB);			
+			$('#total-balance-label').append(totalBal.toFixed(8) + ' ' + SYMB);
+			
+			$('#total-luckdays-label').append(luckDays);
+			
 		});
 	});
 });

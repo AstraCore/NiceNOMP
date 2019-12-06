@@ -172,14 +172,21 @@ module.exports = function(portalConfig, poolConfigs) {
     var totalPaid = parseFloat(0);
     var totalImmature = parseFloat(0);
 
+//    logger.debug("STATS>BEGIN> STATS BEING CALCULATED...");
+
     async.each(_this.stats.pools, function(pool, pcb) {
       var coin = String(_this.stats.pools[pool.name].name);
+      
+//      client.hscan(coin + ':shares:roundCurrent', 0, "match", a + "*", "count", 1000, function(error, result) {pexacoin:blocksPending
+          
       // get all immature balances from address
-      client.hscan(coin + ':immature', 0, "match", a + "*", "count", 10000, function(error, pends) {
+      client.hscan(coin + ':immature', 0, "match", a + "*", "count", 10000, function(pendserr, pends) {
         // get all balances from address
-        client.hscan(coin + ':balances', 0, "match", a + "*", "count", 10000, function(error, bals) {
+        client.hscan(coin + ':balances', 0, "match", a + "*", "count", 10000, function(balserr, bals) {
           // get all payouts from address
-          client.hscan(coin + ':payouts', 0, "match", a + "*", "count", 10000, function(error, pays) {
+          client.hscan(coin + ':payouts', 0, "match", a + "*", "count", 10000, function(payserr, pays) {
+
+            logger.debug("STATS> pendserr: [%s] balserr: [%s] payserr: [%s]", pendserr, balserr, payserr);
 
             var workerName = "";
             var balAmount = 0;
@@ -208,6 +215,11 @@ module.exports = function(portalConfig, poolConfigs) {
                 totalHeld += balAmount;
               }
             }
+            
+            totalImmature = 0;            
+            
+//            logger.debug("STATS>PENDS> " + JSON.stringify(pends));            
+            
             for (var b in pends[1]) {
               if (Math.abs(b % 2) != 1) {
                 workerName = String(pends[1][b]);
@@ -229,12 +241,18 @@ module.exports = function(portalConfig, poolConfigs) {
             }
 
             pcb();
+
           });
+
         });
+
       });
+      
+
+
     }, function(err) {
       if (err) {
-        callback("There Was An Error Getting Balances!");
+        callback("STATS> There Was An Error Getting Balances!");
         return;
       }
 
@@ -289,7 +307,7 @@ module.exports = function(portalConfig, poolConfigs) {
 
       client.client.multi(redisCommands).exec(function(err, replies) {
         if (err) {
-          logger.error('Error with getting global stats, err = %s', JSON.stringify(err));
+          logger.error('STATS> Error with getting global stats, err = %s', JSON.stringify(err));
           callback(err);
         } else {
           for (var i = 0; i < replies.length; i += commandsPerCoin) {
@@ -297,7 +315,10 @@ module.exports = function(portalConfig, poolConfigs) {
             var coinStats = {
               name: coinName,
               explorerGetBlock: poolConfigs[coinName].coin.explorerGetBlock,
+              
               blockTime: poolConfigs[coinName].coin.blockTime,
+              blockChange: poolConfigs[coinName].coin.blockChange,
+              
               explorerGetBlockJSON: poolConfigs[coinName].coin.explorerGetBlockJSON,
               explorerGetTX: poolConfigs[coinName].coin.explorerGetTX,
               symbol: poolConfigs[coinName].coin.symbol.toUpperCase(),
@@ -320,7 +341,7 @@ module.exports = function(portalConfig, poolConfigs) {
               blocks: {
                 pending: replies[i + 3],
                 confirmed: replies[i + 4],
-                confirmedData: replies[i + 6] && replies[i + 6].length > 0 ? replies[i + 6].sort(function(a, b){ return parseInt(b.split(':')[2] - a.split(':')[2])}) : replies[i + 6],
+                //confirmedData: replies[i + 6] && replies[i + 6].length > 0 ? replies[i + 6].sort(function(a, b){ return parseInt(b.split(':')[2] - a.split(':')[2])}) : replies[i + 6],
                 orphaned: replies[i + 5]
               },
               /* show all pending blocks */
@@ -329,9 +350,9 @@ module.exports = function(portalConfig, poolConfigs) {
                 confirms: (replies[i + 10] || {})
               },
               /* show last 50 found blocks */
-							confirmed: {
-								blocks: replies[i + 11].sort(sortBlocks).slice(0,50)
-							},
+                confirmed: {
+                	blocks: replies[i + 11].sort(sortBlocks).slice(0,50)
+                },
               payments: [],
               currentRoundShares: (replies[i + 8] || {})
             };
@@ -353,7 +374,7 @@ module.exports = function(portalConfig, poolConfigs) {
       });
     }, function(err) {
       if (err) {
-        logger.error('Error getting all stats, err = %s', JSON.stringify(err));
+        logger.error('STATS> Error getting all stats, err = %s', JSON.stringify(err));
         callback();
         return;
       }
@@ -373,42 +394,61 @@ module.exports = function(portalConfig, poolConfigs) {
         coinStats.workers = {};
         coinStats.shares = 0;
         coinStats.hashrates.forEach(function(ins) {
-          var parts = ins.split(':');
-          var workerShares = parseFloat(parts[0]);
-          var worker = parts[1];
-          var diff = Math.round(parts[0] * 8192);
-          if (workerShares > 0) {
-            coinStats.shares += workerShares;
-            if (worker in coinStats.workers) {
-              coinStats.workers[worker].shares += workerShares;
-              coinStats.workers[worker].diff = diff;
-            } else
-              coinStats.workers[worker] = {
-                shares: workerShares,
-                diff: diff,
-                invalidshares: 0,
-                currRoundShares: 0,
-                currRoundTime: 0,
-                hashrateString: null,
-                luckDays: null,
-                luckHours: null
-              };
-          } else {
-            if (worker in coinStats.workers) {
-              coinStats.workers[worker].invalidshares -= workerShares; // workerShares is negative number!
-              coinStats.workers[worker].diff = diff;
-            } else
-              coinStats.workers[worker] = {
-                shares: 0,
-                diff: diff,
-                currRoundShares: 0,
-                currRoundTime: 0,
-                invalidshares: -workerShares,
-                hashrateString: null,
-                luckDays: null,
-                luckHours: null
-              };
-          }
+        var parts = ins.split(':');
+        var workerShares = parseFloat(parts[0]);
+        var worker = parts[1];
+        var diff = Math.round(parts[0] * 8192);
+          
+                if (workerShares > 0) {
+                  
+                    coinStats.shares += workerShares;
+                    if (worker in coinStats.workers) {
+                        
+                        coinStats.workers[worker].shares += workerShares;
+                        coinStats.workers[worker].diff = diff;
+                        
+                    } 
+                    else {
+                    
+                        coinStats.workers[worker] = {
+                        shares: workerShares,
+                        diff: diff,
+                        invalidshares: 0,
+                        currRoundShares: 0,
+                        currRoundTime: 0,
+                        hashrateString: null,
+                        luckDays: null,
+                        luckHours: null
+                        };
+                        
+                    }
+                    
+                } 
+                else {
+                  
+                    if (worker in coinStats.workers) {
+                        
+                        coinStats.workers[worker].invalidshares -= workerShares; // workerShares is negative number!
+                        coinStats.workers[worker].diff = diff;
+                        
+                    } 
+                    else {
+                    
+                        coinStats.workers[worker] = {
+                        shares: 0,
+                        diff: diff,
+                        currRoundShares: 0,
+                        currRoundTime: 0,
+                        invalidshares: -workerShares,
+                        hashrateString: null,
+                        luckDays: null,
+                        luckHours: null
+                        };
+                      
+                    }
+                  
+                }
+                
         });
 
         var shareMultiplier = Math.pow(2, 32) / algos[coinStats.algorithm].multiplier;
@@ -486,7 +526,7 @@ module.exports = function(portalConfig, poolConfigs) {
         ['zremrangebyscore', 'statHistory', '-inf', '(' + retentionTime]
       ]).exec(function(err, replies) {
         if (err)
-          logger.error('Error adding stats to historics, err = %s', JSON.stringify(err));
+          logger.error('STATS> Error adding stats to historics, err = %s', JSON.stringify(err));
       });
       callback();
     });
