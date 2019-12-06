@@ -1,9 +1,7 @@
 {
     "enabled": true,
     "coin": "coinname.json",
-
     "address": "wallet",
-
     "rewardRecipients": {
         "pool_reward_fee_address1": 1.5,
         "pool_reward_fee_address2": 0.1
