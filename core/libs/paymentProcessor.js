@@ -23,11 +23,11 @@ JSON.minify = JSON.minify || require("node-json-minify");
 
 // GLOBAL VARIABLES
 
-var portalConfig = JSON.parse(fs.readFileSync("config.json", {encoding: 'utf8'}));
+var portalConfig = JSON.parse(fs.readFileSync("../configuration/config.json", {encoding: 'utf8'}));
 
 var poolConfigs = []; // filled later, here to make it global :)
 
-/* 
+/*
 
     LeshaCat VERIFIED ABOVE
 
@@ -36,13 +36,13 @@ var poolConfigs = []; // filled later, here to make it global :)
 
 
 
-/* 
+/*
 
     LeshaCat VERIFIED BELOW
 
 */
 module.exports = function() {
-    
+
     var logger = loggerFactory.getLogger('PaymentProcessing', 'system');
 
     logger.info("PP> Payment processor worker started");
@@ -52,44 +52,44 @@ module.exports = function() {
     var enabledPools = [];
 
     Object.keys(poolConfigs).forEach(function(coin) {
-      
+
         var poolOptions = poolConfigs[coin];
-    
+
         if (poolOptions.paymentProcessing &&
             poolOptions.paymentProcessing.enabled) {
-          
+
             enabledPools.push(coin);
             logger.info("PP> Enabled %s for payment processing", coin);
-      
+
         }
     });
 
     async.filter(enabledPools, function(coin, callback) {
-      
+
         SetupForPool(poolConfigs[coin], function(setupResults) {
-      
-        // Log successfull and   
+
+        // Log successfull and
         logger.debug("PP> Payment processor initialized. Setup results %s", setupResults);
-      
+
         callback(null, setupResults);
-      
+
         });
-    
+
     },
     function(err, coins) {
-      
+
         if (err) {
             logger.error('PP>ERROR> Error processing enabled pools in the config') // TODO: ASYNC LIB was updated, need to report a better error
-        } 
+        }
         else {
-        
+
             coins.forEach(function(coin) {
 
             var poolOptions = poolConfigs[coin];
             var processingConfig = poolOptions.paymentProcessing;
 
             var tmpInterval = getCoinPayInterval(coin);
-		
+
             logger.info('PP> Payment processing setup to run every %s second(s) with daemon (%s@%s:%s) and redis (%s:%s)',
             tmpInterval,
             processingConfig.daemon.user,
@@ -97,15 +97,15 @@ module.exports = function() {
             processingConfig.daemon.port,
             poolOptions.redis.host,
             poolOptions.redis.port);
-                
+
             }); //end of coins.foreach(function(coin)
 
         } //end of if (err) else
-    
+
     }); //end of async filter
 
 }; //end of module
-/* 
+/*
 
     LeshaCat VERIFIED ABOVE
 
@@ -114,97 +114,97 @@ module.exports = function() {
 
 
 
-/* 
+/*
 
     LeshaCat Codez
 
 */
 function getCoinPayInterval(coin) {
-    
+
     const logger = loggerFactory.getLogger('PaymentProcessor-gCPI', coin);
-    
+
     var poolOptions = poolConfigs[coin];
     var processingConfig = poolOptions.paymentProcessing;
-    
-    
+
+
     if (portalConfig.devmode) {
-    
+
         var payInterval = portalConfig.devmodePayInterval || 0;
-    
+
     }
     else {
-    
-        // minimum paymentInterval of 60 seconds			
+
+        // minimum paymentInterval of 60 seconds
         var payInterval = Math.max((processingConfig.paymentInterval || 120), 30);
-        
+
         if (parseInt(processingConfig.paymentInterval) < 120) {
-            
+
             logger.warning('WARN>PP>GCPI> minimum paymentInterval of 120 seconds recommended.');
-        
+
         }
-    
+
     }
-    
+
     return payInterval;
-    
+
 };
 function getCoinPayMinimum(coin) {
-    
+
     const logger = loggerFactory.getLogger('PaymentProcessor-GCPM', coin);
-        
+
     var poolOptions = poolConfigs[coin];
     var processingConfig = poolOptions.paymentProcessing;
-    
-    
+
+
     if (portalConfig.devmode) {
-    
+
         var minimumPayment = new BigNumber(portalConfig.devmodePayMinimim) || 0.25; // default minimum payment is 0.25
-    
+
     }
     else {
-    
+
         var minimumPayment = new BigNumber(processingConfig.minimumPayment) || 0.25; // default minimum payment is 0.25
-    
+
     }
-    
+
     return minimumPayment;
-    
+
 };
 function getCoinPrecision(coin) {
-    
+
     const logger = loggerFactory.getLogger('PaymentProcessor-GCPR', coin);
-        
+
     var poolOptions = poolConfigs[coin];
     var processingConfig = poolOptions.paymentProcessing;
-    
-    
+
+
     var coinPrecision = processingConfig.coinPrecision || 8;  // default coin precision is 8
-    
-    
+
+
     return coinPrecision;
-    
+
 };
 function getTotalFees(coin) {
-    
+
     const logger = loggerFactory.getLogger('PaymentProcessor-GTF', coin);
-        
+
     var poolOptions = poolConfigs[coin];
     var processingConfig = poolOptions.paymentProcessing;
-    
+
     for(var pool in poolConfigs) {
         var total = 0.0;
 		var rewardRecipients = poolOptions.rewardRecipients || {};
-		
+
 		for (var r in rewardRecipients) {
 			total += rewardRecipients[r];
 	    }
-    
+
     }
-    
+
     return total;
-    
+
 };
-/* 
+/*
 
     LeshaCat Codez              const coinPrecision = 8;
 
@@ -213,28 +213,28 @@ function getTotalFees(coin) {
 
 
 function SetupForPool(poolOptions, setupFinished) {
-   
+
     var coin = poolOptions.coin.name;
     const logger = loggerFactory.getLogger('PaymentProcessor', coin);
 
     var processingConfig = poolOptions.paymentProcessing;
-    
+
     var daemon = new Stratum.daemon.interface([processingConfig.daemon], loggerFactory.getLogger('CoinDaemon', coin));
     var redisClient = redis.createClient(poolOptions.redis.port, poolOptions.redis.host);
 
 
     /* LeshaCat Codez */
     var totalCoinFees = getTotalFees(coin);
-    logger.debug('PP> FEE % = %s', coin.toUpperCase(), totalCoinFees.toString(10)); 
+    logger.debug('PP> FEE % = %s', coin.toUpperCase(), totalCoinFees.toString(10));
     var coinPrecision = getCoinPrecision(coin);
 
     var minPayment = getCoinPayMinimum(coin);
     logger.debug('PP> minPayment = %s', coin.toUpperCase(), minPayment.toString(10));
-    
+
     var paymentInterval = getCoinPayInterval(coin);
     logger.debug('PP> paymentInterval = %s', coin.toUpperCase(), paymentInterval.toString(10));
     /* LeshaCat Codez */
-      
+
 
     logger.debug('PP> Validating address and balance');
 
@@ -255,40 +255,40 @@ function SetupForPool(poolOptions, setupFinished) {
         },
         function(callback) {
           daemon.cmd('getbalance', [], function(result) {
-            
+
             var wasICaught = false;
-            
+
             if (result.error) {
               callback(true);
               return;
             }
-            
+
             try {
-                
+
                 var resBal = result.response;
-                
+
                 logger.debug("PP>WARN> getbalance RPC reply is being tested for validity", resBal.toString());
-                
+
                 if (resBal >= 0.0) {
-                    
+
                     logger.debug("PP>WARN> daemon wallet balance >= 0.0 PASSED - JSON: %s", resBal.toString());
-                
+
                 }
                 else {
-                    
+
                     logger.debug("PP>WARN> daemon wallet balance >= 0.0 FAILED - JSON: %s", resBal.toString());
 
-                    // flag as caught so the pool aborts booting with error :)                    
+                    // flag as caught so the pool aborts booting with error :)
                     wasICaught = true;
-                    
+
                 }
-              
-            } 
+
+            }
             catch (e) {
               console.log(e);
               logger.error('PP>ERROR> Error detecting number of satoshis in a coin, cannot do payment processing. Tried parsing: %s', JSON.stringify(result.data));
               wasICaught = true;
-            } 
+            }
             finally {
               if (wasICaught) {
                 callback(true);
@@ -296,8 +296,8 @@ function SetupForPool(poolOptions, setupFinished) {
                 callback();
               }
             }
-            
-    
+
+
           }, true, true);
         }
     ], function(err) {
@@ -306,10 +306,10 @@ function SetupForPool(poolOptions, setupFinished) {
       setupFinished(false);
       return;
     }
-    
-    
-    
-    
+
+
+
+
     // Set interval for processPayments(); to occur every paymentInterval sec
     setInterval(function() {
       try {
@@ -320,14 +320,14 @@ function SetupForPool(poolOptions, setupFinished) {
             throw e;
         }
       }, paymentInterval * 1000);
-    
+
       setTimeout(processPayments, 100);
       setupFinished(true);
-      
+
     });
-    
-    
-    
+
+
+
 
     var cacheNetworkStats = function() {
       var params = null;
@@ -337,10 +337,10 @@ function SetupForPool(poolOptions, setupFinished) {
             logger.error('PP>ERROR> Error with RPC call getmininginfo ' + JSON.stringify(result[0].error));
             return;
           }
-    
+
           var coin = poolOptions.coin.name;
           var finalRedisCommands = [];
-    
+
           if (result[0].response.blocks !== null) {
             finalRedisCommands.push(['hset', coin + ':stats', 'networkBlocks', result[0].response.blocks]);
           }
@@ -350,7 +350,7 @@ function SetupForPool(poolOptions, setupFinished) {
           if (result[0].response.networkhashps !== null) {
             finalRedisCommands.push(['hset', coin + ':stats', 'networkSols', result[0].response.networkhashps]);
           }
-    
+
           daemon.cmd('getnetworkinfo', params,
             function(result) {
               if (!result || result.error || result[0].error || !result[0].response) {
@@ -369,10 +369,10 @@ function SetupForPool(poolOptions, setupFinished) {
               if (result[0].response.protocolversion !== null) {
                 finalRedisCommands.push(['hset', coin + ':stats', 'networkProtocolVersion', result[0].response.protocolversion]);
               }
-    
+
               if (finalRedisCommands.length <= 0)
                   return;
-    
+
               redisClient.multi(finalRedisCommands).exec(function(error, results) {
                 if (error) {
                     logger.error('PP>ERROR> Error with redis during call to cacheNetworkStats() ' + JSON.stringify(error));
@@ -384,16 +384,16 @@ function SetupForPool(poolOptions, setupFinished) {
         }
       );
     }
-    
+
     // network stats caching every 58 seconds
     var stats_interval = 58 * 1000;
     var statsInterval = setInterval(function() {
       // update network stats using coin daemon
       cacheNetworkStats();
     }, stats_interval);
-    
-    
-    
+
+
+
 // LeshaCat LEFT OFF HERE COME BACK PLZZZZZZZZZZZZZZZZZZZZZZZ: Carry on.... :P
 
 
@@ -530,12 +530,12 @@ function SetupForPool(poolOptions, setupFinished) {
                     }
                 });
             }
-            
+
           logger.debug("WATERFALL> Prepared info basic info about payments");
           logger.debug("WATERFALL> workers = %s", JSON.stringify(workers));
           logger.debug("WATERFALL> rounds = %s", JSON.stringify(rounds));
           logger.debug("WATERFALL> Workers count: %s Rounds: %s", Object.keys(workers).length, rounds.length);
-          
+
           callback(null, workers, rounds);
         });
       },
@@ -665,7 +665,7 @@ function SetupForPool(poolOptions, setupFinished) {
         redisClient.multi(shareLookups).exec(function(error, allWorkerShares) {
           endRedisTimer();
           logger.silly('WATERFALL> Response from redis allWorkerShares = %s', JSON.stringify(allWorkerShares));
-          
+
           if (error) {
           	logger.error('WATERFALL> Check finished - redis error with multi get rounds share');
             callback('WATERFALL> Check finished - redis error with multi get rounds share');
@@ -684,9 +684,9 @@ function SetupForPool(poolOptions, setupFinished) {
               logger.debug("WATERFALL> Iterating worker %s", workerStr);
               //test workername is not null (those may be if miner mine on stratum without user and worker)
               if (workerStr) {
-              	
+
                 if (workerStr.indexOf(".") !== -1) {
-                	
+
                   //we have address and worker
                   logger.debug("WATERFALL> %s worker have both payout address and worker, merging", workerStr);
                   let workerInfo = workerStr.split('.');
@@ -695,29 +695,29 @@ function SetupForPool(poolOptions, setupFinished) {
 						let address = workerInfo[0];
 
                     //todo validate by daemon
-                  
+
                     /*daemon.cmd('validateaddress', [address], function(result) {
 						if (result.error){
 						    logger.error('Error with payment processing daemon ' + JSON.stringify(result.error));
 //						    callback('Error with payment processing daemon ' + JSON.stringify(result.error));
 						}
 					}, true);*/
-	              
+
 		          // KTHXFIX-1-VALIDATION													*!*!!*!*!*!*!*!*!**!*!*!*!!**!*!*!*!*!*!**!*!*!*!*!*!**
-		          
-		          
-		          
-	                    
+
+
+
+
                     if (resultForRound[address]) {
-                    	
+
                       logger.debug("WATERFALL> Already have balance for address %s : %s", address, resultForRound[address].toString(10));
                       resultForRound[address] = resultForRound[address].plus(roundShare[workerStr]);
                       logger.debug("WATERFALL> New balance %s ", resultForRound[address].toString(10));
-                      
+
                     } else {
-                    	
+
                       resultForRound[address] = new BigNumber(roundShare[workerStr]);
-                      
+
                     }
 
                     /*if (resultForRound[address]) {
@@ -729,34 +729,34 @@ function SetupForPool(poolOptions, setupFinished) {
                     }*/
                   }
                 } else {
-                	
+
 	                //todo validate by daemon
-	                let address = workerStr;      
-	                
+	                let address = workerStr;
+
 	                daemon.cmd('validateaddress', [address], function(result) {
 						if (result.error){
 						    logger.debug('WATERFALL>ERROR> Error with payment processing daemon ' + JSON.stringify(result.error));
 //						    callback('Error with payment processing daemon ' + JSON.stringify(result.error));
 						}
 					}, true);
-		        
+
 					// KTHXFIX-1-VALIDATION												*!*!!*!*!*!*!*!*!**!*!*!*!!**!*!*!*!*!*!**!*!*!*!*!*!**
-	                
-	                
+
+
 	                // ATTRIBUTION OF SHARE TO THE WORKER
 					if (resultForRound[address]) {
-			
+
 						logger.debug("WATERFALL> Already have balance for address %s : %s", address, resultForRound[address].toString(10));
 						resultForRound[address] = resultForRound[address].plus(roundShare[workerStr]);
 						logger.debug("WATERFALL> New balance %s ", resultForRound[address].toString(10));
-			
+
 					} else {
-			
+
 						resultForRound[address] = new BigNumber(roundShare[workerStr]);
-			
-					}	
-					
-					
+
+					}
+
+
                   /*if (resultForRound[address]) {
                     logger.silly("Already have balance for address %s : %s", address, resultForRound[address].toString(10));
                     resultForRound[address] = resultForRound[address].plus(roundShare[workerStr]);
@@ -764,7 +764,7 @@ function SetupForPool(poolOptions, setupFinished) {
                   } else {
                     resultForRound[address] = new BigNumber(roundShare[workerStr]);
                   }*/
-                  
+
                 }
               } else {
                 logger.debug('PP>WARN> Look around! We have anonymous shares, null worker');
@@ -841,66 +841,66 @@ function SetupForPool(poolOptions, setupFinished) {
        if not sending the balance, the differnce should be +(the amount they earned this round)
        */
       function(workers, rounds, addressAccount, callback) {
-          
+
         logger.debug("PP> Almost ready to send funds, calculating against existing balances");
-        
+
         var trySend = function(withholdPercent) {
-            
+
           logger.debug('PP> Trying to send');
           logger.debug('PP> withholdPercent = %s', withholdPercent.toString(10));
-          
+
           var addressAmounts = {};
           var totalSent = new BigNumber(0);
           var totalShares = new BigNumber(0);
           var shareAmounts = {};
           var balanceAmounts = {};
-          
+
           logger.debug('PP> totalSent = %s', totalSent);
-          
+
           for (var w in workers) {
             logger.debug('PP> w = %s', w);
             var worker = workers[w];
             logger.debug('PP> worker = %s', JSON.stringify(worker));
-            
-            totalShares = totalShares.plus(worker.totalShares || new BigNumber(0));            
+
+            totalShares = totalShares.plus(worker.totalShares || new BigNumber(0));
             logger.debug('PP> worker.totalShares = %s', (worker.totalShares || new BigNumber(0)).toString(10));
-            
-            worker.balance = worker.balance || new BigNumber(0);            
+
+            worker.balance = worker.balance || new BigNumber(0);
             logger.debug('PP> worker.balance = %s', worker.balance.toString(10));
-            
+
             worker.reward = worker.reward || new BigNumber(0);
             logger.debug('PP> worker.reward = %s', worker.reward.toString(10));
 
             var toSend = (worker.balance.plus(worker.reward)).multipliedBy(new BigNumber(1).minus(withholdPercent));
-            
+
             logger.debug('PP> toSend = %s', toSend.toString(10));
 
             if (toSend.isGreaterThanOrEqualTo(minPayment)) {
 
               logger.debug('PP> Worker %s have reached minimum payout threshold (%s above minimum %s)', w, toSend.toString(10), minPayment.toString(10));
-              
-              totalSent = totalSent.plus(toSend);              
+
+              totalSent = totalSent.plus(toSend);
               logger.debug('PP> totalSent = %s', totalSent.toString(10));
-              
-              var address = worker.address = (worker.address || getProperAddress(w));              
+
+              var address = worker.address = (worker.address || getProperAddress(w));
               logger.debug('PP> address = %s', address);
-              
+
               worker.sent = addressAmounts[address] = toSend;
               logger.debug('PP> worker.sent = %s', worker.sent.toString(10));
-              
+
               worker.balanceChange = BigNumber.min(worker.balance, worker.sent).multipliedBy(new BigNumber(-1));
               logger.debug('PP> worker.balanceChange = %s', worker.balanceChange.toString(10));
-              
+
             } else {
-                
+
               logger.debug('PP> Worker %s have not reached minimum payout threshold %s', w, minPayment.toString(10));
-              
+
               worker.balanceChange = BigNumber.max(toSend.minus(worker.balance), new BigNumber(0));
               logger.debug('PP> worker.balanceChange = %s', worker.balanceChange.toString(10));
-              
+
               worker.sent = new BigNumber(0);
               logger.debug('PP> worker.sent = %s', worker.sent.toString(10));
-              
+
               // track balance changes
               if (worker.balanceChange > 0) {
                 if (balanceAmounts[address] != null && balanceAmounts[address].isGreaterThan(0)) {
@@ -910,7 +910,7 @@ function SetupForPool(poolOptions, setupFinished) {
                 }
               }
             }
-            
+
             // track share work
             if (worker.totalShares && worker.totalShares.isGreaterThan(0)) {
               if (shareAmounts[address] && shareAmounts[address].isGreaterThan(0)) {
@@ -919,7 +919,7 @@ function SetupForPool(poolOptions, setupFinished) {
                 shareAmounts[address] = worker.totalShares;
               }
             }
-            
+
           }
 
           if (Object.keys(addressAmounts).length === 0) {
@@ -928,15 +928,15 @@ function SetupForPool(poolOptions, setupFinished) {
             return;
           }
 
-        
-                  
-        
-        
+
+
+
+
 
           logger.info('PP> Payments to miners: %s', JSON.stringify(addressAmounts));
 
     	  var feeAddresses = [];
-    
+
     	  var rewardAddresses = poolOptions.rewardRecipients;
 
 //	     rewardAddresses = rewardAddresses.substring(1, rewardAddresses.length());
@@ -958,12 +958,12 @@ function SetupForPool(poolOptions, setupFinished) {
 //          Object.keys(rewardAddresses).forEach((rewardaddy) => {
 //            addressAmounts[rewardaddy] = 0.00000000;
 //          });
-            
+
             /* LIST EACH PAYEE AS PAYING FEES (WILL ADD CFG OPTION FOR THIS) */
 /*          Object.keys(rewardAddresses).forEach((feeaddy) => {
             feeAddresses.push(feeaddy);// = 0.0;
           });*/
-          
+
 
           logger.info('PP> Ok, going to pay from "%s" address with final amounts: %s', addressAccount, JSON.stringify(addressAmounts));
           logger.info('PP> Ok, going to pay FEES from "%s" addresses: %s', feeAddresses, JSON.stringify(feeAddresses));
@@ -1020,11 +1020,11 @@ function SetupForPool(poolOptions, setupFinished) {
               callback(null, workers, rounds, paymentsUpdate);
             }
           }, true, true);
-          
-                   
-          
-          
-          
+
+
+
+
+
         };
         trySend(new BigNumber(0));
 
@@ -1176,12 +1176,12 @@ function SetupForPool(poolOptions, setupFinished) {
 		logger.debug('PP> WATERFALL RESULT: %s', wfresult);
 
 		var paymentProcessTime = Date.now() - startPaymentProcess;
-		
+
 		logger.debug('PP> FINISHED PAYMENT INTERVAL - time spent: %s ms total, %s ms redis, %s ms daemon RPC',
 	        paymentProcessTime,
 	        timeSpentRedis,
 	        timeSpentRPC);
-        
+
     });
   };
 
@@ -1197,7 +1197,7 @@ function SetupForPool(poolOptions, setupFinished) {
   var getProperAddress = function(address) {
     if (address.length === 40) {
 
-      /* WAS GETTING ISSUES WITH WORKERNAME HAVING A '.' */ 
+      /* WAS GETTING ISSUES WITH WORKERNAME HAVING A '.' */
 
       var res = address.split(".")
       return util.addressFromEx(poolOptions.address, res[0]);

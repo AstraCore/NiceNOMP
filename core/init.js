@@ -18,25 +18,13 @@ var algos = require('stratum-pool/lib/algoProperties.js');
 
 JSON.minify = JSON.minify || require("node-json-minify");
 
-if (!fs.existsSync('config.json')) {
-    console.log('config.json file does not exist. Read the installation/setup instructions.');
+if (!fs.existsSync('../configuration/config.json')) {
+    console.log('../configuration/config.json file does not exist. Read the installation/setup instructions.');
     return;
 }
 
-var portalConfig = JSON.parse(JSON.minify(fs.readFileSync("config.json", {encoding: 'utf8'})));
+var portalConfig = JSON.parse(JSON.minify(fs.readFileSync("../configuration/config.json", {encoding: 'utf8'})));
 var poolConfigs;
-
-
-//try {
-//    require('newrelic');
-//    if (cluster.isMaster)
-//        logger.debug('New MASTER Relic initiated PID ${process.pid}');
-//    if (cluster.isWorker)
-//        logger.debug('New WORKER Relic initiated PID ${process.pid}');
-//} catch (e) {
-//        logger.debug('RELIC ERR: %s', JSON.stringify(e));
-//}
-
 
 //Try to give process ability to handle 100k concurrent connections
 try {
@@ -90,7 +78,7 @@ if (cluster.isWorker) {
 //Read all pool configs from pool_configs and join them with their coin profile
 var buildPoolConfigs = function () {
     var configs = {};
-    var configDir = 'pool_configs/';
+    var configDir = '../configuration/pool_configs/';
 
     var poolConfigFiles = [];
 
@@ -133,7 +121,7 @@ var buildPoolConfigs = function () {
 
         poolOptions.coinFileName = poolOptions.coin;
 
-        var coinFilePath = 'coins/' + poolOptions.coinFileName;
+        var coinFilePath = '../configuration/coins/' + poolOptions.coinFileName;
         if (!fs.existsSync(coinFilePath)) {
             logger.error('[%s] could not find file %s ', poolOptions.coinFileName, coinFilePath);
             return;
@@ -146,8 +134,8 @@ var buildPoolConfigs = function () {
         if (poolOptions.coin.name in configs) {
 
             //todo string interpolation
-            logger.error('%s coins/' + poolOptions.coinFileName
-                + ' has same configured coin name ' + poolOptions.coin.name + ' as coins/'
+            logger.error('%s ../configuration/coins/' + poolOptions.coinFileName
+                + ' has same configured coin name ' + poolOptions.coin.name + ' as ../configuration/coins/'
                 + configs[poolOptions.coin.name].coinFileName + ' used by pool config '
                 + configs[poolOptions.coin.name].fileName, poolOptions.fileName);
 
@@ -182,7 +170,7 @@ var buildPoolConfigs = function () {
 
 var buildAuxConfigs = function(){
     var configs = {};
-    var configDir = 'aux_configs/';
+    var configDir = '../configuration/aux_configs/';
 
     var poolConfigFiles = [];
 
@@ -200,7 +188,7 @@ var buildAuxConfigs = function(){
 
         poolOptions.coinFileName = poolOptions.coin;
 
-        var poolFilePath = 'coins/' + poolOptions.coinFileName;
+        var poolFilePath = '../configuration/coins/' + poolOptions.coinFileName;
         if (!fs.existsSync(poolFilePath)){
             logger.warn('Master', poolOptions.coinFileName, 'could not find file: ' + poolFilePath);
             return;

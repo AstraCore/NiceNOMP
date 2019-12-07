@@ -4,7 +4,7 @@
 
     "address": "wallet",
 
-	"donateaddress": "XF5zeEsu63n32xT4duAG853Wtk1o6tbk7v",
+    "donateaddress": "XF5zeEsu63n32xT4duAG853Wtk1o6tbk7v",
 
     "rewardRecipients": {
         "pool_reward_fee_address1": 1.5,
@@ -28,10 +28,10 @@
     },
 
     "ports": {
-	"randportlow": {
-		"diff": 8				          
+      "randportlow": {
+		"diff": 8
     },
-		
+
     "randportvar": {
         "diff": 32,
         "varDiff": {
@@ -42,7 +42,7 @@
             "variancePercent": 30
 	    }
     },
-		
+
     "randporthigh": {
 		"diff": 2000
 			}
@@ -85,4 +85,3 @@
     }
 
 }
-

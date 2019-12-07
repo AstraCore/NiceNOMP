@@ -24,8 +24,8 @@ const logger = loggerFactory.getLogger('Website', 'system');
 
 
 /* LeshaCat code to add LZ/Matomo support :D */
-if (fs.existsSync('lzCode.conf')) { var lzCode = fs.readFileSync('lzCode.conf','utf8'); } else { var lzCode = ""; }
-if (fs.existsSync('matomoCode.conf')) { var matomoCode = fs.readFileSync('matomoCode.conf','utf8'); } else { var matomoCode = ""; }
+if (fs.existsSync('../configuration/lzCode.conf')) { var lzCode = fs.readFileSync('../configuration/lzCode.conf','utf8'); } else { var lzCode = ""; }
+if (fs.existsSync('../configuration/matomoCode.conf')) { var matomoCode = fs.readFileSync('../configuration/matomoCode.conf','utf8'); } else { var matomoCode = ""; }
 
 
 module.exports = function () {
@@ -43,7 +43,7 @@ module.exports = function () {
 
     var logSystem = 'Website';
 
-    
+
 
     var pageFiles = {
         'home.html': '',                                // home page
@@ -59,20 +59,20 @@ module.exports = function () {
         'miner_stats.html': 'miner_stats',              // individual miner stats (skeleton?)
         'pool_stats.html': 'pool_stats'                 // individual pool stats (skeleton?)
     };
-    
-    // LeshaCat code to decide wether to load example page or real news page.    
-    var mainScriptPath = require('path').dirname(require.main.filename)    
-    if ((fs.existsSync(mainScriptPath + '/website/pages/news.html'))) {
+
+    // LeshaCat code to decide wether to load example page or real news page.
+    var mainScriptPath = require('path').dirname(require.main.filename)
+    if ((fs.existsSync(mainScriptPath + '../site/pages/news.html'))) {
         // Do something
         pageFiles['news.html'] = "news";                // news page
-        logger.debug("Loaded CUSTOM news.html"); 
+        logger.debug("Loaded CUSTOM news.html");
     }
     else {
         pageFiles['news_example.html'] = "news";        // news page
-        
+
         logger.debug("Loaded EXAMPLE news_example.html");
-    }    
-    
+    }
+
     var pageTemplates = {};
 
     var pageProcessed = {};
@@ -105,13 +105,13 @@ module.exports = function () {
         }
 
 //        logger.debug('WEBSITE> Updated to latest stats');
-        
+
     };
 
 
     var readPageFiles = function(files){
         async.each(files, function(fileName, callback){
-            var filePath = 'website/' + (fileName === 'index.html' ? '' : 'pages/') + fileName;
+            var filePath = '../site/' + (fileName === 'index.html' ? '' : 'pages/') + fileName;
             fs.readFile(filePath, 'utf8', function(err, data){
                 var pTemp = dot.template(data);
                 pageTemplates[pageFiles[fileName]] = pTemp
@@ -126,7 +126,7 @@ module.exports = function () {
         });
     };
     /* requires node-watch 0.5.0 or newer */
-    watch(['./website', './website/pages'], function(evt, filename){
+    watch(['../site', '../site/pages'], function(evt, filename){
         var basename;
         // support older versions of node-watch automatically
         if (!filename && evt)
@@ -234,7 +234,7 @@ module.exports = function () {
                 return;
             }
             try {
-                keyScriptTemplate = dot.template(fs.readFileSync('website/key.html', {encoding: 'utf8'}));
+                keyScriptTemplate = dot.template(fs.readFileSync('../site/key.html', {encoding: 'utf8'}));
                 keyScriptProcessed = keyScriptTemplate({coins: coinBytes});
             }
             catch (e) {
@@ -340,44 +340,44 @@ module.exports = function () {
     });
 
     try {
-    	
+
     	/* HTTP WEBSITE */
     	logger.info('WEBSITE> Attempting to start Website on %s:%s', portalConfig.website.host,portalConfig.website.port);
-    	        
+
         http.createServer(app).listen(portalConfig.website.port, portalConfig.website.host, function () {
             logger.info('WEBSITE> Website started on %s:%s', portalConfig.website.host,portalConfig.website.port);
         });
-        
+
     }
     catch (e) {
         logger.error('WEBSITE> e = %s', JSON.stringify(e));
         logger.error('WEBSITE> Could not start website on %s:%s - its either in use or you do not have permission', portalConfig.website.host,portalConfig.website.port);
     }
-    
-    
-    /* HTTPS WEBSITE */ 
+
+
+    /* HTTPS WEBSITE */
     if (portalConfig.website.sslenabled) {
-    	
+
     	try {
-    		
-			logger.info('WEBSITE> Attempting to start SSL Website on %s:%s', portalConfig.website.host,portalConfig.website.sslport);	
-			       
+
+			logger.info('WEBSITE> Attempting to start SSL Website on %s:%s', portalConfig.website.host,portalConfig.website.sslport);
+
 			var privateKey = fs.readFileSync( portalConfig.website.sslkey );
 			var certificate = fs.readFileSync( portalConfig.website.sslcert );
-			
-			var credentials = {key: privateKey, cert: certificate};			
-			
+
+			var credentials = {key: privateKey, cert: certificate};
+
 			https.createServer(credentials, app).listen(portalConfig.website.sslport, portalConfig.website.host, function () {
 	            logger.info('WEBSITE> SSL Website started on %s:%s', portalConfig.website.host,portalConfig.website.sslport);
 	        });
-        	
+
         }
-        catch (e) {        	
+        catch (e) {
 	        logger.error('WEBSITE> e = %s', JSON.stringify(e));
 	        logger.error('WEBSITE> Could not start SSL website on %s:%s - its either in use or you do not have permission', portalConfig.website.host,portalConfig.website.sslport);
         }
-        	
-        	
+
+
 	}
 
 
