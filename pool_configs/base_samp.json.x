@@ -1,7 +1,11 @@
 {
     "enabled": true,
     "coin": "coinname.json",
+
     "address": "wallet",
+
+	"donateaddress": "XF5zeEsu63n32xT4duAG853Wtk1o6tbk7v",
+
     "rewardRecipients": {
         "pool_reward_fee_address1": 1.5,
         "pool_reward_fee_address2": 0.1
@@ -9,42 +13,48 @@
 
     "paymentProcessing": {
         "enabled": true,
-        "paymentInterval": 600,
-        "minimumPayment": 0.01,
+        "schema": "PROP",
+        "paymentInterval": 300,
+        "minimumPayment": 0.25,
+        "maxBlocksPerPayment": 10,
+        "minConf": 30,
+        "coinPrecision": 8,
         "daemon": {
             "host": "127.0.0.1",
-            "port": daemonport,
-            "user": "rpcuser",
-            "password": "rpcpass"
+            "port": daemon_port,
+            "user": "rpc_user",
+            "password": "rpc_pass"
         }
     },
 
     "ports": {
-        "randportlow": {
-            "diff": 8
-        },
-        "randportvar": {
-            "diff": 32,
-            "varDiff": {
-                "minDiff": 8,
-                "maxDiff": 1500,
-                "targetTime": 15,
-                "retargetTime": 90,
-                "variancePercent": 30
-            }
-        },
-        "randporthigh": {
-            "diff": 2000
-        }
+	"randportlow": {
+		"diff": 8				          
+    },
+		
+    "randportvar": {
+        "diff": 32,
+        "varDiff": {
+            "minDiff": 8,
+            "maxDiff": 1500,
+            "targetTime": 15,
+            "retargetTime": 90,
+            "variancePercent": 30
+	    }
+    },
+		
+    "randporthigh": {
+		"diff": 2000
+			}
     },
 
     "daemons": [
-        {
-            "host": "127.0.0.1",
-            "port": daemonport,
-            "user": "rpcuser",
-            "password": "rpcpass"
-        }
+    {
+        "host": "127.0.0.1",
+        "port": daemon_port,
+        "user": "rpc_user",
+        "password": "rpc_pass"
+    }
     ],
 
     "p2p": {
@@ -75,3 +85,4 @@
     }
 
 }
+

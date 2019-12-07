@@ -1,4 +1,33 @@
 {
+    
+    "poolname": "FQDN",
+    
+    "devmode": false,
+    "devmodePayMinimim": 0.25,
+    "devmodePayInterval": 120,
+    
+    "logips": true,       
+    "anonymizeips": true,
+    "ipv4bits": 16,
+    "ipv6bits": 16,
+    
+    "poolwarningmsg": "WARNING: POOL IS DEFAULT CONFIGURATION! PLEASE ENSURE TO CHANGE CONFIGURATION!",
+    
+    "defaultCoin": "pexacoin",
+    
+    "poollogo": "/local/file/path/or_a_web_address.to.png",
+    
+    "discordtwitterfacebook": "Join our #mining channel on Discord: <a href='https://discord.gg/vzcbVNW' target='_blank'>https://discord.gg/vzcbVNW</a>",
+    
+    "pagetitle": "FQDN - 0% Fees Promo - Run by professionals",
+    "pageauthor": "cryptopool.builders...",
+    "pagedesc": "A reliable, low fee, easy to use mining pool for cryptocurrency! No matter your experience with mining cryptocurrency, we make it easy! Get started mining today!",
+    "pagekeywds": "GPU,CPU,Hash,Hashrate,Cryptocurrency,Crypto,Mining,Pool,Bitcoin,Raven,Ravencoin,Wavi,Wavicoin,Dixicoin,Dixi,QBic,QBicCoin,Easy,Simple,How,To",
+
+    "btcdonations": "3DvcaPT3Kio8Hgyw4ZA9y1feNnKZjH7Y21",
+    "ltcdonations": "MLS5pfgb7QMqBm3pmBvuJ7eRCRgwLV25Nz",
+    "ethdonations": "0x6A047e5410f433FDBF32D7fb118B6246E3b7C136",
+
     "logger" : {
         "level" : "debug",
         "file" : "logs/nomp_debug.log"
@@ -34,16 +63,18 @@
 
     "website": {
         "enabled": true,
+        "sslenabled": true,
+        "sslforced": true,
         "host": "0.0.0.0",
         "port": 3000,
         "stratumHost": "FQDN",
         "stats": {
-            "updateInterval": 60,
+            "updateInterval": 5,
             "historicalRetention": 43200,
-            "hashrateWindow": 300
+            "hashrateWindow": 600
         },
         "adminCenter": {
-            "enabled": true,
+            "enabled": false,
             "password": "PASSWORD"
         }
     },
@@ -113,4 +144,5 @@
         "useMintpal": true,
         "useBittrex": true
     }
+
 }
