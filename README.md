@@ -3,6 +3,7 @@
 Trying to install this on a server not built by our installer will cause headaches, frustrations, and screaming loudly at your monitor. 
 
 ### Credits
+* [EasyX-Community](//https://github.com/EasyX-Community) - Where our easyNOMP sources from
 * [1301313Y](//github.com/1301313Y) - Upgraded the UI and stat modules
 * [a2hill](//github.com/a2hill) - helped with X16r
 * [devnulled](//github.com/devnull-ed) - helped with lyra2z, neoscrypt algo
