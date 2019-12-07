@@ -1,6 +1,6 @@
 {
     "enabled": true,
-    "coin": "coinname.json",
+    "coin": "coin_name.json",
 
     "address": "wallet",
 
