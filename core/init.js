@@ -16,12 +16,12 @@ var algos = require('cryptocurrency-stratum-pool/lib/algoProperties.js');
 
 JSON.minify = JSON.minify || require("node-json-minify");
 
-if (!fs.existsSync('config.json')){
-    console.log('config.json file does not exist. Read the installation/setup instructions.');
+if (!fs.existsSync('../configuration/config.json')){
+    console.log('../configuration/config.json file does not exist. Read the installation/setup instructions.');
     return;
 }
 
-var portalConfig = JSON.parse(JSON.minify(fs.readFileSync("config.json", {encoding: 'utf8'})));
+var portalConfig = JSON.parse(JSON.minify(fs.readFileSync("../configuration/config.json", {encoding: 'utf8'})));
 var poolConfigs;
 
 var logger = new PoolLogger({
@@ -53,13 +53,13 @@ if (cluster.isWorker){
     }
 
     return;
-} 
+}
 
 
 //Read all pool configs from pool_configs and join them with their coin profile
 var buildPoolConfigs = function(){
     var configs = {};
-    var configDir = 'pool_configs/';
+    var configDir = '../configuration/pool_configs/';
 
     var poolConfigFiles = [];
 
@@ -102,7 +102,7 @@ var buildPoolConfigs = function(){
 
         poolOptions.coinFileName = poolOptions.coin;
 
-        var coinFilePath = 'coins/' + poolOptions.coinFileName;
+        var coinFilePath = '../configuration/coins/' + poolOptions.coinFileName;
         if (!fs.existsSync(coinFilePath)){
             logger.error('Master', poolOptions.coinFileName, 'could not find file: ' + coinFilePath);
             return;
@@ -114,7 +114,7 @@ var buildPoolConfigs = function(){
 
         if (poolOptions.coin.name in configs){
 
-            logger.error('Master', poolOptions.fileName, 'coins/' + poolOptions.coinFileName
+            logger.error('Master', poolOptions.fileName, '../configuration/coins/' + poolOptions.coinFileName
                 + ' has same configured coin name ' + poolOptions.coin.name + ' as coins/'
                 + configs[poolOptions.coin.name].coinFileName + ' used by pool config '
                 + configs[poolOptions.coin.name].fileName);
@@ -129,7 +129,7 @@ var buildPoolConfigs = function(){
                 var clonedOption = {};
                 if (toCloneOption.constructor === Object) {
                     Object.assign(clonedOption, toCloneOption);
-                } else { 
+                } else {
                     clonedOption = toCloneOption;
                 }
                 poolOptions[option] = clonedOption;

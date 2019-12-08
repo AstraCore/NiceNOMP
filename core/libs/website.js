@@ -76,7 +76,7 @@ module.exports = function(logger) {
 
 	var readPageFiles = function(files) {
 		async.each( files, function(fileName, callback) {
-			var filePath = 'website/' + ( fileName === 'index.html' ? '' : 'pages/' ) + fileName;
+			var filePath = '../site/web/' + ( fileName === 'index.html' ? '' : 'pages/' ) + fileName;
 			fs.readFile( filePath, 'utf8', function(err, data) {
 				var pTemp = dot.template( data );
 				pageTemplates[pageFiles[fileName]] = pTemp
@@ -93,7 +93,7 @@ module.exports = function(logger) {
 
 	// if an html file was changed reload it
 	/* requires node-watch 0.5.0 or newer */
-	watch( ['./website', './website/pages'], function(evt, filename) {
+	watch( ['../site/web/', '../site/web/pages'], function(evt, filename) {
 		var basename;
 		// support older versions of node-watch automatically
 		if ( !filename && evt ) {
@@ -201,7 +201,7 @@ module.exports = function(logger) {
 				return;
 			}
 			try{
-				keyScriptTemplate = dot.template( fs.readFileSync( 'website/key.html', {
+				keyScriptTemplate = dot.template( fs.readFileSync( '../site/web/key.html', {
 					encoding: 'utf8'
 				} ) );
 				keyScriptProcessed = keyScriptTemplate( {
@@ -397,9 +397,9 @@ module.exports = function(logger) {
 	express.static.mime.define( {
 		'text/plain': ['pub']
 	} );
-	app.use( '/', express.static( 'website/static' ) );
+	app.use( '/', express.static( '../site/web/static' ) );
 	app.use( compress() );
-	app.use( '/static', express.static( 'website/static' ) );
+	app.use( '/static', express.static( '../site/web/static' ) );
 
 	app.use( function(err, req, res, next) {
 		console.error( err.stack );
