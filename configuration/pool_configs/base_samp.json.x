@@ -28,11 +28,11 @@
     },
 
     "ports": {
-      "randportlow": {
+      "rand_port_low": {
 		"diff": 8
     },
 
-    "randportvar": {
+    "rand_port_var": {
         "diff": 32,
         "varDiff": {
             "minDiff": 8,
@@ -43,7 +43,7 @@
 	    }
     },
 
-    "randporthigh": {
+    "rand_port_high": {
 		"diff": 2000
 			}
     },

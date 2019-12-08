@@ -50,7 +50,7 @@ module.exports = function () {
         'index.html': 'index',                          // index page
         'getting_started.html': 'getting_started',      // getting started page
         'dashboard.html': 'dashboard',                  // dashboard page
-    	'pools.html': 'pools',                          // all pool stats page
+    	  'pools.html': 'pools',                          // all pool stats page
         'stats.html': 'stats',                           // individual pool stats pages
         'workers.html': 'workers',                      // individual & all worker stats pages
         'blocks.html': 'blocks',                        // payment history
@@ -62,7 +62,7 @@ module.exports = function () {
 
     // LeshaCat code to decide wether to load example page or real news page.
     var mainScriptPath = require('path').dirname(require.main.filename)
-    if ((fs.existsSync(mainScriptPath + '../site/pages/news.html'))) {
+    if ((fs.existsSync(mainScriptPath + '../site/web/pages/news.html'))) {
         // Do something
         pageFiles['news.html'] = "news";                // news page
         logger.debug("Loaded CUSTOM news.html");
@@ -111,7 +111,7 @@ module.exports = function () {
 
     var readPageFiles = function(files){
         async.each(files, function(fileName, callback){
-            var filePath = '../site/' + (fileName === 'index.html' ? '' : 'pages/') + fileName;
+            var filePath = '../site/web/' + (fileName === 'index.html' ? '' : 'pages/') + fileName;
             fs.readFile(filePath, 'utf8', function(err, data){
                 var pTemp = dot.template(data);
                 pageTemplates[pageFiles[fileName]] = pTemp
@@ -126,7 +126,7 @@ module.exports = function () {
         });
     };
     /* requires node-watch 0.5.0 or newer */
-    watch(['../site', '../site/pages'], function(evt, filename){
+    watch(['../site/web', '../site/web/pages'], function(evt, filename){
         var basename;
         // support older versions of node-watch automatically
         if (!filename && evt)
@@ -234,7 +234,7 @@ module.exports = function () {
                 return;
             }
             try {
-                keyScriptTemplate = dot.template(fs.readFileSync('../site/key.html', {encoding: 'utf8'}));
+                keyScriptTemplate = dot.template(fs.readFileSync('../site/web/key.html', {encoding: 'utf8'}));
                 keyScriptProcessed = keyScriptTemplate({coins: coinBytes});
             }
             catch (e) {

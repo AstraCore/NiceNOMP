@@ -19,7 +19,7 @@ var algos = require('stratum-pool/lib/algoProperties.js');
 JSON.minify = JSON.minify || require("node-json-minify");
 
 if (!fs.existsSync('../configuration/config.json')) {
-    console.log('../configuration/config.json file does not exist. Read the installation/setup instructions.');
+    console.log('config.json file does not exist. Read the installation/setup instructions.');
     return;
 }
 
@@ -134,8 +134,8 @@ var buildPoolConfigs = function () {
         if (poolOptions.coin.name in configs) {
 
             //todo string interpolation
-            logger.error('%s ../configuration/coins/' + poolOptions.coinFileName
-                + ' has same configured coin name ' + poolOptions.coin.name + ' as ../configuration/coins/'
+            logger.error('%s coins/' + poolOptions.coinFileName
+                + ' has same configured coin name ' + poolOptions.coin.name + ' as coins/'
                 + configs[poolOptions.coin.name].coinFileName + ' used by pool config '
                 + configs[poolOptions.coin.name].fileName, poolOptions.fileName);
 
